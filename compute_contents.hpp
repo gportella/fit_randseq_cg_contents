@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-#define CG_CONTENT_BKGRND 0.5
+#define CG_CONTENT_BKGRND 0.42
 using namespace seqan;
 
 // for the conditions
@@ -35,10 +35,7 @@ template <typename tt1> double weighted_error(tt1 v1, tt1 v2) {
   double result = 0.0;
   // better safe than sorry
   if (v1.size() == v2.size() and v1.size() > 0) {
-    // one could use boost's zip_iterator as well.
     for (unsigned i = 0; i < v1.size(); ++i) {
-      // result += (1.0 - ((v1[i] + 0.001) / (v2[i] + 0.001))) *
-      //         (1.0 - ((v1[i] + 0.001) / (v2[i] + 0.001)));
       result += ((v1[i] - v2[i]) * (v1[i] - v2[i]));
     }
 
@@ -56,7 +53,7 @@ template <typename tt1> double weighted_error(tt1 v1, tt1 v2) {
 // Compute the fraction of CG for a given sequence
 ///////////////////////////////////////////////////////////////////////////////
 template <typename tt1>
-std::vector<double> find_cg_composition(tt1 seq, int window) {
+std::vector<double> find_cg_composition(tt1 seq, int window, float cg_content_bkground) {
 
   std::vector<double> cg_comp;
 
@@ -91,7 +88,7 @@ std::vector<double> find_cg_composition(tt1 seq, int window) {
     }
     double gc_content = ((g_count + c_count) /
                          (a_count + t_count + c_count + g_count + n_count)) -
-                        CG_CONTENT_BKGRND;
+                        cg_content_bkground;
 
     cg_comp.push_back(gc_content);
   }
@@ -105,13 +102,13 @@ std::vector<double> find_cg_composition(tt1 seq, int window) {
 //        alternatively use the safe_add_vector function instead of the
 //        brave_add_vector one
 ///////////////////////////////////////////////////////////////////////////////
-template <typename tt1, typename tt2>
-std::vector<double> compute_cg_contents(tt1 seqs, tt2 kmer_window) {
+template <typename tt1, typename tt2, typename tt3>
+std::vector<double> compute_cg_contents(tt1 seqs, tt2 kmer_window, tt3 cg_content_bkground) {
 
   std::vector<double> av_cg(length(seqs[0]) - kmer_window, 0.0);
   std::vector<double> cg;
   for (unsigned i = 0; i < length(seqs); ++i) {
-    cg = find_cg_composition(seqs[i], kmer_window);
+    cg = find_cg_composition(seqs[i], kmer_window, cg_content_bkground);
     av_cg = brave_add_vector(av_cg, cg);
   }
   // average
@@ -184,7 +181,7 @@ mimic_results do_mimic_profile(tt0 parseOptions, tt1 dseqs, tt1 dseqs_rand,
 
   // obtain the reference CG content curve
   std::vector<double> reference_cg =
-      compute_cg_contents(dseqs, parseOptions.kmer_window);
+      compute_cg_contents(dseqs, parseOptions.kmer_window, parseOptions.cg_background);
   // from the random sequences, extract random indices, as many
   // as sequences we have in the reference, in descending order.
   std::vector<int> init_proposed_ind =
@@ -212,7 +209,7 @@ mimic_results do_mimic_profile(tt0 parseOptions, tt1 dseqs, tt1 dseqs_rand,
 
   // the CG content of the initial trial bunch of sequences
   std::vector<double> rand_cg =
-      compute_cg_contents(init_proposed_seq, parseOptions.kmer_window);
+      compute_cg_contents(init_proposed_seq, parseOptions.kmer_window, parseOptions.cg_background);
   // how far are we from the target curve?
   double prev_diff = weighted_error(reference_cg, rand_cg);
   if (parseOptions.b_verbose) {
@@ -237,6 +234,7 @@ mimic_results do_mimic_profile(tt0 parseOptions, tt1 dseqs, tt1 dseqs_rand,
     std::uniform_int_distribution<int> distr2(0, length(dseqs_rand) - 1);
     int rand_trial_ref = distr(generator);
     int rand_trial_rand = distr2(generator);
+    std::cout << "1 " << rand_trial_ref << std::endl;
 
     StringSet<Dna5String> proposed_seq = init_proposed_seq;
     std::vector<BedRecord<Bed3>> proposed_bed = init_proposed_bed;
@@ -248,7 +246,7 @@ mimic_results do_mimic_profile(tt0 parseOptions, tt1 dseqs, tt1 dseqs_rand,
     appendValue(proposed_seq, dseqs_rand[rand_trial_rand]);
     appendValue(proposed_bed, v_randBedrecords[rand_trial_rand]);
 
-    test_cg = compute_cg_contents(proposed_seq, parseOptions.kmer_window);
+    test_cg = compute_cg_contents(proposed_seq, parseOptions.kmer_window, parseOptions.cg_background);
 
     double diff = weighted_error(reference_cg, test_cg);
 

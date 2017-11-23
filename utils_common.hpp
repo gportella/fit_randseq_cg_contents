@@ -129,7 +129,6 @@ std::vector<T> safe_add_vector(std::vector<T> const &v1,
 
   // better safe than sorry
   if (v1.size() == v2.size()) {
-    // one could use boost's zip_iterator as well.
     for (unsigned i = 0; i < v1.size(); ++i) {
       result[i] = v1[i] + v2[i];
     }
