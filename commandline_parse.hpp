@@ -111,7 +111,7 @@ ArgumentParser::ParseResult parseCommandLine(Options &parseOptions, int argc,
   getOptionValue(parseOptions.max_iter, parser, "max_iter");
   getOptionValue(parseOptions.disimilarity_cutoff, parser,
                  "disimilarity_cutoff");
-  getOptionValue(parseOptions.disimilarity_cutoff, parser,
+  getOptionValue(parseOptions.cg_background, parser,
                  "cg_background");
   getOptionValue(parseOptions.kmer_window, parser, "kmer_window");
   parseOptions.b_verbose = isSet(parser, "be_verbose");

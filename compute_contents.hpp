@@ -17,7 +17,6 @@
 #include <string>
 #include <vector>
 
-#define CG_CONTENT_BKGRND 0.42
 using namespace seqan;
 
 // for the conditions
